@@ -26,7 +26,7 @@ watcher = K247_Main_Watch.new
 # set region  
   # near otsuchi
     xmin  = 141.0; xmax = 144.0
-    ymin  =  38.0; ymax =  41.0
+    ymin  =  38.0; ymax =  40.0
     rname = "#{xmin.to_i}to#{xmax.to_i}E_#{ymin.to_i}to#{ymax.to_i}N"
   # 
     xname = "lon"; yname = "lat"

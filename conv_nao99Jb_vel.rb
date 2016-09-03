@@ -20,10 +20,10 @@ end
 watcher = K247_Main_Watch.new
 
 # Main 4 component tides
-  tide_type = "m2" # M2: moon semi-diurnal
+  #tide_type = "m2" # M2: moon semi-diurnal
   #tide_type = "s2" # S2: sun semi-diurnal
   #tide_type = "k1" # K1: mixed diurnal
-  #tide_type = "o1" # O1: moon diurnal
+  tide_type = "o1" # O1: moon diurnal
 
   dname     = "nao99Jb_vel"
   org_fn    = "#{dname}/vfield.#{tide_type}"
@@ -74,7 +74,7 @@ end
 
 
 
-# set
+# set array
   lon_min = 110.0; lon_max = 165.0; dlon = 1.0 / 12.0
   lat_min =  20.0; lat_max =  63.0; dlat = 1.0 / 12.0
   nlon    = ( ( lon_max - lon_min ) / dlon ).to_i + 1
@@ -88,7 +88,7 @@ end
   pu_arr  = NArray.sfloat( nlon, nlat ).fill( rmiss )
   pv_arr  = NArray.sfloat( nlon, nlat ).fill( rmiss )
 
-
+  # set arr: preparation
   nbgn = NArray.int( nlon+1 ).fill( 0 )
   nend = NArray.int( nlon+1 ).fill( 0 )
   for n in 0..lnum-1
@@ -97,59 +97,74 @@ end
   end
   nbgn[ 1..nlon-1 ] = nend[ 0..nlon-2 ] + 1
 
-
-=begin
-  # check data
-  File.open( "tmp_lon.txt", "w" ) do | fu |
-    for n in 0..nlon-1
-      for n2 in nbgn[i]..nend[i]
-        fu.puts( na_lons[ n2  ])
+  # set arr
+  for i in 0..nlon-1
+    for n in nbgn[i]..nend[i]
+      j = ( ( na_lats[n] - lat_min ) / dlat ).round
+      if na_au[n] != 0.0 or na_pu[n] != 0.0
+        au_arr[i,j]  = na_au[n]
+        pu_arr[i,j]  = na_pu[n]
       end
+      if na_av[n] != 0.0 or na_pv[n] != 0.0
+        av_arr[i,j]  = na_av[n]
+        pv_arr[i,j]  = na_pv[n]
+      end
+      #if na_au[n] == 0.0 or na_av[n] == 0.0
+      #  puts "  Missing at #{i}, #{j}"
+      #end
     end
   end
-=end
-
-
-for i in 0..nlon-1
-  for n in nbgn[i]..nend[i]
-    j = ( ( na_lats[n] - lat_min ) / dlat ).round
-    au_arr[i,j]  = na_au[n]
-    av_arr[i,j]  = na_av[n]
-    spd_arr[i,j] = sqrt( na_au[n]**2.0 + na_av[n]**2.0 )
-    pu_arr[i,j]  = na_pu[n]
-    pv_arr[i,j]  = na_pv[n]
+  
+  # fix grid
+  #   Xu = X - 0.5 * dx; Yv = Y - 0.5 * dy
+  for i in 0..nlon-2
+  for j in 0..nlat-2
+    #if ( au_arr[i,j] != rmiss ) and ( au_arr[i+1,j] != rmiss )
+    if ( au_arr[i,j] >= 0.0 ) and ( au_arr[i+1,j] >= 0.0 )
+      au_arr[i,j] = 0.5 * ( au_arr[i,j] + au_arr[i+1,j] )
+      pu_arr[i,j] = 0.5 * ( pu_arr[i,j] + pu_arr[i+1,j] )
+    end
+    #if ( av_arr[i,j] != rmiss ) and ( av_arr[i,j+1] != rmiss )
+    if ( av_arr[i,j] >= 0.0 ) and ( av_arr[i,j+1] >= 0.0 )
+      av_arr[i,j] = 0.5 * ( av_arr[i,j] + av_arr[i,j+1] )
+      pv_arr[i,j] = 0.5 * ( pv_arr[i,j] + pv_arr[i,j+1] )
+    end
+    #if ( au_arr[i,j] != rmiss ) and ( av_arr[i,j] != rmiss )
+    if ( au_arr[i,j] >= 0.0 ) and ( av_arr[i,j] >= 0.0 )
+      spd_arr[i,j] = sqrt( au_arr[i,j]**2.0 + av_arr[i,j]**2.0 ) 
+    end
   end
-end
+  end
 
-
-ax_lon  = Axis.new.set_pos( VArray.new( lon_arr, { "long_name" => "longitude", "units" => "degE"}, "lon") )
-ax_lat  = Axis.new.set_pos( VArray.new( lat_arr, { "long_name" => "latitude" , "units" => "degN"}, "lat") )
-gr_xy   = Grid.new( ax_lon, ax_lat )
-att_au  = { "long_name" => "Amplitude of u", "units" => "cm.s-1", "missing_value" => rmiss}
-att_av  = { "long_name" => "Amplitude of v", "units" => "cm.s-1", "missing_value" => rmiss}
-att_spd = { "long_name" => "Value of Speed", "units" => "cm.s-1", "missing_value" => rmiss, "comment" => "sqrt( au^2 + av^2 )"}
-att_pu  = { "long_name" => "Phase of u"    , "units" => "deg", "missing_value" => rmiss}
-att_pv  = { "long_name" => "Phase of v"    , "units" => "deg", "missing_value" => rmiss}
-out_fn = "#{dname}/#{tide_type}.nc"
-#out_fn = "tmp.nc"
-fu = NetCDF.create( out_fn )
-puts "out_fn: #{out_fn}"
-  da_au  = VArray.new( au_arr, att_au, "au" )
-  gp_au  = GPhys.new( gr_xy, da_au )
-  GPhys::NetCDF_IO.write( fu, gp_au )
-  da_av  = VArray.new( av_arr, att_av, "av" )
-  gp_av  = GPhys.new( gr_xy, da_av )
-  GPhys::NetCDF_IO.write( fu, gp_av )
-  da_spd = VArray.new( spd_arr, att_spd, "spd" )
-  gp_spd = GPhys.new( gr_xy, da_spd )
-  GPhys::NetCDF_IO.write( fu, gp_spd )
-  da_pu  = VArray.new( pu_arr, att_pu, "pu" )
-  gp_pu  = GPhys.new( gr_xy, da_pu )
-  GPhys::NetCDF_IO.write( fu, gp_pu )
-  da_pv  = VArray.new( pv_arr, att_pv, "pv" )
-  gp_pv  = GPhys.new( gr_xy, da_pv )
-  GPhys::NetCDF_IO.write( fu, gp_pv )
-fu.close
+# write nc
+  ax_lon  = Axis.new.set_pos( VArray.new( lon_arr, { "long_name" => "longitude", "units" => "degE"}, "lon") )
+  ax_lat  = Axis.new.set_pos( VArray.new( lat_arr, { "long_name" => "latitude" , "units" => "degN"}, "lat") )
+  gr_xy   = Grid.new( ax_lon, ax_lat )
+  att_au  = { "long_name" => "Amplitude of u", "units" => "cm.s-1", "missing_value" => rmiss, "comment" => "fix grid by 2-grid mean"}
+  att_av  = { "long_name" => "Amplitude of v", "units" => "cm.s-1", "missing_value" => rmiss, "comment" => "fix grid by 2-grid mean"}
+  att_spd = { "long_name" => "Value of Speed", "units" => "cm.s-1", "missing_value" => rmiss, "comment" => "sqrt( au^2 + av^2 )"}
+  att_pu  = { "long_name" => "Phase of u"    , "units" => "deg", "missing_value" => rmiss}
+  att_pv  = { "long_name" => "Phase of v"    , "units" => "deg", "missing_value" => rmiss}
+  out_fn = "#{dname}/#{tide_type}.nc"
+  #out_fn = "tmp.nc"
+  fu = NetCDF.create( out_fn )
+  puts "out_fn: #{out_fn}"
+    da_au  = VArray.new( au_arr, att_au, "au" )
+    gp_au  = GPhys.new( gr_xy, da_au )
+    GPhys::NetCDF_IO.write( fu, gp_au )
+    da_av  = VArray.new( av_arr, att_av, "av" )
+    gp_av  = GPhys.new( gr_xy, da_av )
+    GPhys::NetCDF_IO.write( fu, gp_av )
+    da_spd = VArray.new( spd_arr, att_spd, "spd" )
+    gp_spd = GPhys.new( gr_xy, da_spd )
+    GPhys::NetCDF_IO.write( fu, gp_spd )
+    da_pu  = VArray.new( pu_arr, att_pu, "pu" )
+    gp_pu  = GPhys.new( gr_xy, da_pu )
+    GPhys::NetCDF_IO.write( fu, gp_pu )
+    da_pv  = VArray.new( pv_arr, att_pv, "pv" )
+    gp_pv  = GPhys.new( gr_xy, da_pv )
+    GPhys::NetCDF_IO.write( fu, gp_pv )
+  fu.close
 =begin
 =end
 
