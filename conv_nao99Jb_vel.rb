@@ -19,14 +19,15 @@ end
 
 watcher = K247_Main_Watch.new
 
-#tide_type = "m2" # M2: moon semi-diurnal
-#tide_type = "s2" # S2: sun semi-diurnal
-#tide_type = "k1" # K1: mixed diurnal
-#tide_type = "o1" # O1: moon diurnal
-tide_type = "p1" # P1: sun diurnal
-dname     = "nao99Jb_vel"
-org_fn    = "#{dname}/vfield.#{tide_type}"
-puts "org_fn: #{org_fn}"
+# Main 4 component tides
+  tide_type = "m2" # M2: moon semi-diurnal
+  #tide_type = "s2" # S2: sun semi-diurnal
+  #tide_type = "k1" # K1: mixed diurnal
+  #tide_type = "o1" # O1: moon diurnal
+
+  dname     = "nao99Jb_vel"
+  org_fn    = "#{dname}/vfield.#{tide_type}"
+  puts "org_fn: #{org_fn}"
 # nao99_Jb_vel
 #   line
 #     lon [deg], lat [deg], Au [cm/s], Pu [deg], Av [cm/s], Pv[deg]
@@ -126,7 +127,7 @@ ax_lat  = Axis.new.set_pos( VArray.new( lat_arr, { "long_name" => "latitude" , "
 gr_xy   = Grid.new( ax_lon, ax_lat )
 att_au  = { "long_name" => "Amplitude of u", "units" => "cm.s-1", "missing_value" => rmiss}
 att_av  = { "long_name" => "Amplitude of v", "units" => "cm.s-1", "missing_value" => rmiss}
-att_spd = { "long_name" => "Value of Speed", "units" => "cm.s-1", "missing_value" => rmiss}
+att_spd = { "long_name" => "Value of Speed", "units" => "cm.s-1", "missing_value" => rmiss, "comment" => "sqrt( au^2 + av^2 )"}
 att_pu  = { "long_name" => "Phase of u"    , "units" => "deg", "missing_value" => rmiss}
 att_pv  = { "long_name" => "Phase of v"    , "units" => "deg", "missing_value" => rmiss}
 out_fn = "#{dname}/#{tide_type}.nc"
