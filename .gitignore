@@ -1,6 +1,7 @@
 tgz_files/
 log/
-*.nc
 nao99Jb/
 nao99Jb_vel/
 share/
+*.nc
+*.pdf

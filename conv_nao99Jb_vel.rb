@@ -23,7 +23,8 @@ watcher = K247_Main_Watch.new
   #tide_type = "m2" # M2: moon semi-diurnal
   #tide_type = "s2" # S2: sun semi-diurnal
   #tide_type = "k1" # K1: mixed diurnal
-  tide_type = "o1" # O1: moon diurnal
+  #tide_type = "o1" # O1: moon diurnal
+  tide_type = "mu2" # : diurnal
 
   dname     = "nao99Jb_vel"
   org_fn    = "#{dname}/vfield.#{tide_type}"
